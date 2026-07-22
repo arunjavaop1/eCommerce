@@ -6,11 +6,10 @@ import com.ecommerce.entity.User;
 import com.ecommerce.exception.UserFoundException;
 import com.ecommerce.service.security_service.CustomUserDetailsService;
 import com.ecommerce.service.user_service.UserServiceImpl;
-import org.apache.coyote.Response;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -63,24 +62,18 @@ public class UserController {
     @PatchMapping("/update-phone/{contact}")
     public ResponseEntity<?> updatePhoneNumber(@PathVariable String contact) {
         String email = cd.getAuthentication();
-        UserDto userDto = userService.updatePhoneDetails(email, contact);
-
+        UserDto userDto = userService.updatePhoneNumber(email, contact);
         if(userDto == null) return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Not updated");
-
         return ResponseEntity.status(HttpStatus.OK).body(userDto);
     }
 
     @DeleteMapping("/delete-user")
     public ResponseEntity<?> deleteUser() {
-
         String email = cd.getAuthentication();
-
         UserDto userDto = userService.deleteUser(email);
-
         if(userDto == null) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unable to delete");
         }
-
         return ResponseEntity.status(HttpStatus.OK).body(userDto);
     }
 
@@ -107,6 +100,16 @@ public class UserController {
         } catch(IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("new Email already in use.");
         }
-
     }
+
+    @PatchMapping("/deactivate-user")
+    public ResponseEntity<?> deactivateUser() {
+        String email = cd.getAuthentication();
+        boolean success = userService.deactivateUser(email);
+        if(success) {
+            return ResponseEntity.status(HttpStatus.OK).body("Deactivate success");
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Deactivate is not success");
+    }
+
 }

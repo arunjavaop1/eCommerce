@@ -25,8 +25,8 @@ public class AddressServiceImpl implements AddressService{
 
     @Override
     @Transactional
-    public UserDto saveAddress(String username, Address address) {
-        User user = userRepo.findByEmail(username)
+    public UserDto saveAddress(String email, Address address) {
+        User user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         address.setUser(user);

@@ -13,14 +13,16 @@ import com.ecommerce.repository.UserRepo;
 
 import com.ecommerce.service.email_service.EmailServiceImpl;
 import com.ecommerce.service.role_service.RoleServiceImpl;
-import com.ecommerce.service.security_service.CustomUserDetailsService;
 import com.ecommerce.utility.UserStatus;
 import jakarta.transaction.Transactional;
+import org.springframework.mail.MailException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -29,22 +31,18 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder encoder;
     private final RoleServiceImpl roleService;
     private final EmailServiceImpl emailService;
-
     private final AddressRepo addressRepo;
-    private final CustomUserDetailsService cs;
 
-
-    public UserServiceImpl(UserRepo userRepo, PasswordEncoder encoder, RoleServiceImpl roleService, EmailServiceImpl emailService, AddressRepo addressRepo, CustomUserDetailsService cs) {
+    public UserServiceImpl(UserRepo userRepo, PasswordEncoder encoder, RoleServiceImpl roleService, EmailServiceImpl emailService, AddressRepo addressRepo) {
         this.userRepo = userRepo;
         this.encoder = encoder;
         this.roleService = roleService;
         this.emailService = emailService;
         this.addressRepo = addressRepo;
-        this.cs = cs;
     }
 
-    @Override
     @Transactional
+    @Override
     public UserDto registerUser(User user, long roleId) {
 
         if(userRepo.findByEmail(user.getEmail()).isPresent()) throw new UserFoundException("User already found");
@@ -57,7 +55,8 @@ public class UserServiceImpl implements UserService {
         Role role = roleService.findRoleExistOrNot(roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found"));
 
-        if(role == null) System.out.println("role not found");
+        if(role == null) return null;
+
         user.setRoles(Set.of(role));
 
         User savedUser = userRepo.save(user);
@@ -67,31 +66,30 @@ public class UserServiceImpl implements UserService {
     }
 
 
-    @Override
     @Transactional
+    @Override
     public UserDto updateUserProfile(User user) {
         User existingUser = userRepo.findById(user.getId()).orElse(null);
         if (existingUser == null) return null;
 
         existingUser.setUsername(user.getUsername());
         existingUser.setEmail(user.getEmail());
-        existingUser.setContact("8709288463");
+        existingUser.setContact(user.getContact());
         existingUser.setUpdatedAt(LocalDateTime.now());
-
         User updatedUser = userRepo.save(existingUser);
         return UserMapper.userToDto(updatedUser);
     }
 
-
     @Transactional
     public boolean changePassword(String email, String newPassword) {
-        User existingUser = userRepo.findByEmail(email).orElse(null);
+        User existingUser = getExistingUser(email);
         if(existingUser == null) return false;
         existingUser.setPassword(encoder.encode(newPassword));
+        userRepo.save(existingUser);
         return true;
     }
 
-
+    @Override
     public UserDto getUserById(Long id){
         User existingUser = userRepo.findById(id).orElse(null);
         if(existingUser == null) return null;
@@ -99,29 +97,43 @@ public class UserServiceImpl implements UserService {
     }
 
 
+    @Override
     public UserDto getUserByEmail(String email){
-        User existingUser = userRepo.findByEmail(email).orElse(null);
+        User existingUser = getExistingUser(email);
         if(existingUser == null) return null;
         return UserMapper.userToDto(existingUser);
     }
 
+
     @Transactional
-    public boolean deactivateUser(Long id) {
-        User existingUser = userRepo.findById(id).orElse(null);
+    @Override
+    public boolean deactivateUser(String email) {
+        User existingUser = getExistingUser(email);
 
         if(existingUser == null) return false;
         existingUser.setStatus(UserStatus.INACTIVE);
+        existingUser.setUpdatedAt(LocalDateTime.now());
+        userRepo.save(existingUser);
+        return true;
+    }
+
+    @Transactional
+    @Override
+    public boolean activateUser(String email) {
+        User existing_user = getExistingUser(email);
+
+        if(existing_user == null) throw new UserFoundException("user not found");
+
+        existing_user.setStatus(UserStatus.ACTIVE);
+        existing_user.setUpdatedAt(LocalDateTime.now());
+        userRepo.save(existing_user);
+
         return true;
     }
 
     @Override
-    public boolean activateUser(Long id) {
-        return false;
-    }
-
-    @Override
     public boolean verifyEmail(String mail) {
-        User user = userRepo.findByEmail(mail).orElse(null);
+        User user = getExistingUser(mail);
         if(user == null) return false;
         EmailDetails details = new EmailDetails();
 
@@ -135,22 +147,24 @@ public class UserServiceImpl implements UserService {
                 "ApnaJob Team"
         );
 
-        if(emailService.sendSimpleMail(details) ) {
-            user.setEmailVerified(true);
-            userRepo.save(user);
-            return true;
+        try {
+            boolean sent = emailService.sendSimpleMail(details);
+            if(sent) {
+                user.setEmailVerified(true);
+                userRepo.save(user);
+                return true;
+            }
+            return false;
+        } catch(MailException m) {
+            return false;
         }
-
-        return true;
     }
 
 
     @Override
     @Transactional
     public List<UserDto> findAllUser() {
-
         List<User> userList = userRepo.findAll();
-
         return userList.stream()
                 .map(UserMapper::userToDto)
                 .toList();
@@ -158,24 +172,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto deleteUser(String email) {
-        Optional<User> user = userRepo.findByEmail(email);
-        user.ifPresent(u -> u.setStatus(UserStatus.DELETE));
-        if(user.isEmpty()) return null;
-        userRepo.save(user.get());
-        return UserMapper.userToDto(user.get());
-    }
-
-    @Override
-    public UserDto updatePhoneDetails(String email, String contact) {
-
-        Optional<User> existingUser = userRepo.findByEmail(email);
-        if(existingUser.isEmpty()) return null;
-
-        User user = existingUser.get();
-
-        user.setContact(contact);
+        User user = getExistingUser(email);
+        user.setStatus(UserStatus.DELETE);
         user.setUpdatedAt(LocalDateTime.now());
-
         userRepo.save(user);
         return UserMapper.userToDto(user);
     }
@@ -189,14 +188,11 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Email already in use.");
         }
 
-        Optional<User> existingUser = userRepo.findByEmail(oldEmail);
-        User user = existingUser.orElse(null);
+        User user = getExistingUser(oldEmail);
         if(user == null) return null;
 
         user.setEmail(newEmail);
-
         userRepo.save(user);
-
         return UserMapper.userToDto(user);
     }
 
@@ -206,35 +202,61 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto updateRoles(String email, Set<Role> roles) {
-        return null;
+    public UserDto updatePhoneNumber(String email, String phone_number) {
+        User existing_user = getExistingUser(email);
+
+        if(existing_user == null) {
+            return null;
+        }
+        existing_user.setContact(phone_number);
+        existing_user.setUpdatedAt(LocalDateTime.now());
+        userRepo.save(existing_user);
+        return UserMapper.userToDto(existing_user);
+    }
+
+    @Override
+    public UserDto updateRoles(String email, Role role) {
+        User existing_user = getExistingUser(email);
+
+        if(existing_user == null) {
+            return null;
+        }
+        Set<Role> roles = new HashSet<>(existing_user.getRoles());
+        roles.add(role);
+        existing_user.setRoles(roles);
+        userRepo.save(existing_user);
+        return UserMapper.userToDto(existing_user);
     }
 
     @Override
     public UserDto addAddress(String email, Address address) {
-        return null;
+        User user = getExistingUser(email);
+        if(user == null) return null;
+        address.setUser(user);
+        addressRepo.save(address);
+        user.getAddresses().add(address);
+        userRepo.save(user);
+        return UserMapper.userToDto(user);
     }
+
+
 
     @Override
     public UserDto removeAddress(String email, Long addressId) {
-        User user = userRepo.findByEmail(email).orElse(null);
-
+        User user = getExistingUser(email);
         if(user == null) return null;
 
-
-        List<Address> addressList = user.getAddresses();
-        for(Address address : addressList) {
-            if(address.getId() == addressId) {
-                addressRepo.deleteById(addressId);
-                break;
-            }
-        }
+        user.getAddresses().removeIf(a -> a.getId() == addressId);
+        addressRepo.deleteById(addressId);
+        userRepo.save(user);
 
         return UserMapper.userToDto(user);
     }
 
-    @Override
-    public UserDto getUserByContact(String contact) {
-        return null;
+
+    ///  Helping methods;
+    User getExistingUser(String email) {
+        return userRepo.findByEmail(email).orElse(null);
     }
+
 }

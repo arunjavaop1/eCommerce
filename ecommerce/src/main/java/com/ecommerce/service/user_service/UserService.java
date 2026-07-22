@@ -6,7 +6,6 @@ import com.ecommerce.entity.Role;
 import com.ecommerce.entity.User;
 
 import java.util.List;
-import java.util.Set;
 
 public interface UserService {
 
@@ -16,24 +15,23 @@ public interface UserService {
     boolean changePassword(String email, String newPassword);
     UserDto getUserById(Long id);
     UserDto getUserByEmail(String email);
-    boolean deactivateUser(Long id);
-    boolean activateUser(Long id);
+    boolean deactivateUser(String email);
+    boolean activateUser(String email);
+
     boolean verifyEmail(String email);
     List<UserDto> findAllUser();
     UserDto deleteUser(String email);
 
     // Contact & profile updates
-    UserDto updatePhoneDetails(String email, String contact);
     UserDto updateEmail(String oldEmail, String newEmail);
     UserDto updateProfilePicture(String email, String imageUrl);
+    UserDto updatePhoneNumber(String email, String phone_number);
 
     // Role management
-    UserDto updateRoles(String email, Set<Role> roles);
+    UserDto updateRoles(String email, Role role);
 
     // Address management
     UserDto addAddress(String email, Address address);
     UserDto removeAddress(String email, Long addressId);
 
-    // Search helpers
-    UserDto getUserByContact(String contact);
 }
