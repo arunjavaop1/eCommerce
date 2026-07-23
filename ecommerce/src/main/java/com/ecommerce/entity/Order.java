@@ -21,6 +21,15 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "order_seq")
     private long id;
 
+    // Fields
+    private Double totalAmount;
+
+    @Enumerated(EnumType.STRING)
+    private OrderStatus status;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
     // Relationships
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
@@ -42,12 +51,5 @@ public class Order {
 
 
 
-    // Fields
-    private Double totalAmount;
 
-    @Enumerated(EnumType.STRING)
-    private OrderStatus status;
-
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

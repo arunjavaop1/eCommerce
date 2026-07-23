@@ -255,7 +255,7 @@ public class UserServiceImpl implements UserService {
 
 
     ///  Helping methods;
-    User getExistingUser(String email) {
+    public User getExistingUser(String email) {
         return userRepo.findByEmail(email).orElse(null);
     }
 

@@ -1,6 +1,7 @@
 package com.ecommerce.config;
 
 
+import com.sendgrid.SendGrid;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -25,17 +26,18 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         request ->
                                 request.requestMatchers("/test/**").permitAll()
-                                .requestMatchers("/admin/register")
-                                .permitAll()
+                                .requestMatchers("/admin/register").permitAll()
                                 .requestMatchers("/admin/**").authenticated()
+                                        .requestMatchers("/seller/signup").permitAll()
+                                        .requestMatchers("/seller/**").hasRole("SELLER")
                                 .requestMatchers("/users/signup").permitAll()
                                 .requestMatchers("/users/getAllUser").hasRole("ADMIN")
                                 .requestMatchers("/users/update-phone/**").permitAll()
                                 .requestMatchers("/users/**").permitAll()
                                 .requestMatchers("/address/save-address").hasAnyRole("USER", "ADMIN")
                                 .requestMatchers("/address/**").permitAll()
-                                .requestMatchers("/products/**")
-                                .permitAll()
+                                .requestMatchers("/products/save-product").hasRole("SELLER")
+                                        .requestMatchers("/products/all-products").permitAll()
                                 .anyRequest()
                                 .authenticated()
                 )
@@ -54,5 +56,11 @@ public class SecurityConfig {
                 .build();
     }
 
+
+    @Bean
+    public SendGrid sendGrid() {
+        String apiKey = System.getenv("SENDGRID_API_KEY");
+        return new SendGrid(apiKey);
+    }
 
 }

@@ -38,6 +38,9 @@ public class User {
 
     private Boolean emailVerified = false;
 
+    @Enumerated(EnumType.STRING)
+    private UserStatus status;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Address> addresses;
 
@@ -61,18 +64,7 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Notification> notifications;
 
-    @Enumerated(EnumType.STRING)
-    private UserStatus status;
+    @OneToMany(mappedBy = "seller")
+    private List<Product> products;
 
-
-    @Override
-    public String toString() {
-        return "User{" +
-                "id=" + id +
-                ", username='" + username + '\'' +
-                ", email='" + email + '\'' +
-                ", contact='" + contact + '\'' +
-                ", emailVerified=" + emailVerified +
-                '}';
-    }
 }

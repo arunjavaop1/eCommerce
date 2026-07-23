@@ -1,12 +1,15 @@
 package com.ecommerce.service.email_service;
 
 import com.ecommerce.payload.EmailDetails;
+import com.sendgrid.Method;
+import com.sendgrid.Request;
+import com.sendgrid.Response;
+import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
 
-import com.sendgrid.*;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -18,12 +21,12 @@ import java.io.IOException;
 public class EmailServiceImpl implements EmailService{
 
     private final JavaMailSender javaMailSender;
-    private final SendGrid sendGrid;
 
-    public EmailServiceImpl(JavaMailSender javaMailSender, SendGrid sendGrid) {
+    @Autowired
+    private SendGrid sendGrid;
+
+    public EmailServiceImpl(JavaMailSender javaMailSender) {
         this.javaMailSender = javaMailSender;
-        String apiKey = System.getenv("SENDDRID_API_KEY");
-        this.sendGrid = new SendGrid(apiKey);
     }
 
     public Response sendSimpleMailUsingSendGrid(EmailDetails emailDetails)  {

@@ -26,5 +26,6 @@ public class Category {
     private Category parent;
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Product> products;
 }

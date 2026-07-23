@@ -1,6 +1,7 @@
 package com.ecommerce.entity;
 
 import com.ecommerce.utility.ProductStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -44,7 +45,6 @@ public class Product {
     private Category category;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
-    @Column(nullable = true)
     private List<Review> reviews;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
@@ -52,4 +52,8 @@ public class Product {
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
     private List<OrderItem> orderItems;
+
+    @ManyToOne
+    @JoinColumn(name = "seller_id")
+    private User seller;
 }
